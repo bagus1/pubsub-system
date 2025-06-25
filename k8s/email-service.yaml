@@ -21,7 +21,7 @@ spec:
             - name: AWS_REGION
               value: "us-east-1"
             - name: SQS_QUEUE_URL
-              value: "https://sqs.us-east-1.amazonaws.com/484123688626/email-service-queue"
+              value: "https://sqs.us-east-1.amazonaws.com/{{ AWS_ACCOUNT_ID }}/email-service-queue"
           resources:
             requests:
               memory: "128Mi"

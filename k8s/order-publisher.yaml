@@ -21,7 +21,7 @@ spec:
             - containerPort: 3000
           env:
             - name: AWS_SNS_TOPIC_ARN
-              value: "arn:aws:sns:us-east-1:484123688626:order-events"
+              value: "arn:aws:sns:us-east-1:{{ AWS_ACCOUNT_ID }}:order-events"
             - name: AWS_REGION
               value: "us-east-1"
           resources:
