@@ -1,0 +1,92 @@
+name: Build and Deploy PubSub System
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push order-publisher
+      run: |
+        cd order_publisher
+        docker build -t $ECR_REGISTRY/order-publisher:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/order-publisher:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/order-publisher:$GITHUB_SHA $ECR_REGISTRY/order-publisher:latest
+        docker push $ECR_REGISTRY/order-publisher:latest
+
+    - name: Build and push email-service
+      run: |
+        cd services/email_service
+        docker build -t $ECR_REGISTRY/email-service:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/email-service:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/email-service:$GITHUB_SHA $ECR_REGISTRY/email-service:latest
+        docker push $ECR_REGISTRY/email-service:latest
+
+    - name: Build and push inventory-service
+      run: |
+        cd services/inventory_service
+        docker build -t $ECR_REGISTRY/inventory-service:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/inventory-service:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/inventory-service:$GITHUB_SHA $ECR_REGISTRY/inventory-service:latest
+        docker push $ECR_REGISTRY/inventory-service:latest
+
+    - name: Build and push analytics-service
+      run: |
+        cd services/analytics_service
+        docker build -t $ECR_REGISTRY/analytics-service:$GITHUB_SHA .
+        docker push $ECR_REGISTRY/analytics-service:$GITHUB_SHA
+        docker tag $ECR_REGISTRY/analytics-service:$GITHUB_SHA $ECR_REGISTRY/analytics-service:latest
+        docker push $ECR_REGISTRY/analytics-service:latest
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig --region $AWS_REGION --name pubsub-cluster
+
+    - name: Deploy to Kubernetes
+      run: |
+        # Update image tags in deployment files
+        sed -i "s|AWS_ACCOUNT_ID|$AWS_ACCOUNT_ID|g" k8s/*.yaml
+        sed -i "s|:latest|:$GITHUB_SHA|g" k8s/*.yaml
+        
+        # Apply deployments
+        kubectl apply -f k8s/
+        
+        # Wait for rollout to complete
+        kubectl rollout status deployment/order-publisher
+        kubectl rollout status deployment/email-service
+        kubectl rollout status deployment/inventory-service
+        kubectl rollout status deployment/analytics-service
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods
+        kubectl get services
