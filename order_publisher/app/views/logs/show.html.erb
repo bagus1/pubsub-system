@@ -1,0 +1,388 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3">
+    <i class="fas fa-file-alt me-2"></i>
+    <%= @service_name %> Logs
+  </h1>
+  <div class="btn-group">
+    <%= link_to "Back to Logs", logs_path, class: "btn btn-outline-secondary" %>
+    <%= link_to "Orders", orders_path, class: "btn btn-outline-primary" %>
+    <button class="btn btn-success" onclick="refreshLogs()" id="refresh-btn">
+      <i class="fas fa-sync-alt"></i> Refresh
+    </button>
+  </div>
+</div>
+
+<% if @error %>
+  <div class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <strong>Error fetching logs:</strong> <%= @error %>
+    <hr>
+    <small>
+      Make sure your AWS credentials are configured and the log group exists:<br>
+      <code><%= @log_group %></code>
+    </small>
+  </div>
+<% end %>
+
+<div class="row mb-4">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-info-circle me-2"></i>
+          Log Information
+        </h5>
+        <span class="badge bg-primary" id="log-count"><%= @logs.count %> entries</span>
+      </div>
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-3">Service:</dt>
+          <dd class="col-sm-9"><%= @service_name %></dd>
+          
+          <dt class="col-sm-3">Log Group:</dt>
+          <dd class="col-sm-9"><code><%= @log_group %></code></dd>
+          
+          <dt class="col-sm-3">Time Range:</dt>
+          <dd class="col-sm-9">Last 1 hour</dd>
+          
+          <dt class="col-sm-3">Last Updated:</dt>
+          <dd class="col-sm-9">
+            <span id="last-updated">
+              <%= @last_updated&.strftime("%B %d, %Y at %I:%M:%S %p") || "Never" %>
+            </span>
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-cogs me-2"></i>
+          Controls
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <button class="btn btn-outline-info" onclick="toggleAutoRefresh()" id="auto-refresh-btn">
+            <i class="fas fa-play"></i> Start Auto-refresh
+          </button>
+          
+          <button class="btn btn-outline-warning" onclick="clearLogs()">
+            <i class="fas fa-eraser"></i> Clear Display
+          </button>
+          
+          <button class="btn btn-outline-success" onclick="exportLogs()">
+            <i class="fas fa-download"></i> Export Logs
+          </button>
+        </div>
+        
+        <hr>
+        
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="scroll-to-new" checked>
+          <label class="form-check-label" for="scroll-to-new">
+            Auto-scroll to new entries
+          </label>
+        </div>
+        
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="show-timestamps" checked>
+          <label class="form-check-label" for="show-timestamps">
+            Show timestamps
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-terminal me-2"></i>
+      Live Log Stream
+    </h5>
+    <div class="d-flex align-items-center">
+      <span class="badge bg-success me-2" id="status-indicator">
+        <i class="fas fa-circle"></i> Live
+      </span>
+      <input type="text" class="form-control form-control-sm" 
+             placeholder="Filter logs..." id="log-filter" style="width: 200px;">
+    </div>
+  </div>
+  
+  <div class="card-body p-0">
+    <div id="log-container" class="bg-dark text-light p-3" 
+         style="height: 600px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.4;">
+      
+      <% if @logs.any? %>
+        <% @logs.each do |log| %>
+          <div class="log-entry mb-2" data-timestamp="<%= log[:timestamp].iso8601 %>">
+            <span class="timestamp text-info">
+              [<%= log[:timestamp].strftime("%H:%M:%S.%L") %>]
+            </span>
+            <span class="stream-name text-warning">
+              <%= log[:stream] %>:
+            </span>
+            <span class="message text-light">
+              <%= simple_format(h(log[:message]), {}, wrapper_tag: "span") %>
+            </span>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-search fa-3x mb-3"></i>
+          <h5>No logs found</h5>
+          <p>No log entries found in the last hour for this service.</p>
+          <small>Try refreshing or check if the service is running and generating logs.</small>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <div class="card-footer">
+    <div class="row text-center">
+      <div class="col-md-3">
+        <small class="text-muted">Total Entries:</small><br>
+        <strong id="total-entries"><%= @logs.count %></strong>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted">Auto-refresh:</small><br>
+        <strong id="auto-refresh-status">Disabled</strong>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted">Filtered:</small><br>
+        <strong id="filtered-count">0</strong>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted">Latest Entry:</small><br>
+        <strong id="latest-entry">
+          <%= @logs.first&.dig(:timestamp)&.strftime("%H:%M:%S") || "None" %>
+        </strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let autoRefreshInterval = null;
+let logData = <%= raw @logs.to_json %>;
+
+// Real-time log filtering
+document.getElementById('log-filter').addEventListener('input', function(e) {
+  const filter = e.target.value.toLowerCase();
+  const entries = document.querySelectorAll('.log-entry');
+  let filteredCount = 0;
+  
+  entries.forEach(entry => {
+    const message = entry.querySelector('.message').textContent.toLowerCase();
+    const isVisible = message.includes(filter);
+    entry.style.display = isVisible ? 'block' : 'none';
+    if (isVisible) filteredCount++;
+  });
+  
+  document.getElementById('filtered-count').textContent = filteredCount;
+});
+
+// Toggle timestamps
+document.getElementById('show-timestamps').addEventListener('change', function(e) {
+  const timestamps = document.querySelectorAll('.timestamp');
+  timestamps.forEach(ts => {
+    ts.style.display = e.target.checked ? 'inline' : 'none';
+  });
+});
+
+function refreshLogs() {
+  const refreshBtn = document.getElementById('refresh-btn');
+  const statusIndicator = document.getElementById('status-indicator');
+  
+  refreshBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Refreshing...';
+  refreshBtn.disabled = true;
+  statusIndicator.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Loading';
+  statusIndicator.className = 'badge bg-warning me-2';
+  
+  fetch(`/logs/stream/<%= CGI.escape(@log_group) %>`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        updateLogDisplay(data.logs);
+        statusIndicator.innerHTML = '<i class="fas fa-circle"></i> Live';
+        statusIndicator.className = 'badge bg-success me-2';
+        document.getElementById('last-updated').textContent = new Date().toLocaleString();
+      } else {
+        statusIndicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+        statusIndicator.className = 'badge bg-danger me-2';
+        console.error('Error fetching logs:', data.error);
+      }
+    })
+    .catch(error => {
+      statusIndicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+      statusIndicator.className = 'badge bg-danger me-2';
+      console.error('Network error:', error);
+    })
+    .finally(() => {
+      refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+      refreshBtn.disabled = false;
+    });
+}
+
+function updateLogDisplay(logs) {
+  const container = document.getElementById('log-container');
+  const showTimestamps = document.getElementById('show-timestamps').checked;
+  const shouldScrollToNew = document.getElementById('scroll-to-new').checked;
+  
+  if (logs.length === 0) {
+    container.innerHTML = `
+      <div class="text-center text-muted py-5">
+        <i class="fas fa-search fa-3x mb-3"></i>
+        <h5>No recent logs</h5>
+        <p>No new log entries found.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const logHtml = logs.map(log => {
+    const timestamp = new Date(log.timestamp);
+    const timestampStr = timestamp.toTimeString().split(' ')[0] + '.' + timestamp.getMilliseconds().toString().padStart(3, '0');
+    
+    return `
+      <div class="log-entry mb-2" data-timestamp="${log.timestamp}">
+        <span class="timestamp text-info" style="display: ${showTimestamps ? 'inline' : 'none'}">
+          [${timestampStr}]
+        </span>
+        <span class="stream-name text-warning">
+          ${log.stream}:
+        </span>
+        <span class="message text-light">
+          ${escapeHtml(log.message)}
+        </span>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = logHtml;
+  
+  // Update stats
+  document.getElementById('total-entries').textContent = logs.length;
+  document.getElementById('log-count').textContent = `${logs.length} entries`;
+  document.getElementById('latest-entry').textContent = 
+    logs.length > 0 ? new Date(logs[0].timestamp).toTimeString().split(' ')[0] : 'None';
+  
+  // Scroll to top for newest logs
+  if (shouldScrollToNew) {
+    container.scrollTop = 0;
+  }
+  
+  // Apply current filter
+  const filterInput = document.getElementById('log-filter');
+  if (filterInput.value) {
+    filterInput.dispatchEvent(new Event('input'));
+  }
+}
+
+function toggleAutoRefresh() {
+  const btn = document.getElementById('auto-refresh-btn');
+  const status = document.getElementById('auto-refresh-status');
+  
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+    btn.innerHTML = '<i class="fas fa-play"></i> Start Auto-refresh';
+    btn.className = 'btn btn-outline-info';
+    status.textContent = 'Disabled';
+  } else {
+    autoRefreshInterval = setInterval(refreshLogs, 10000); // Every 10 seconds
+    btn.innerHTML = '<i class="fas fa-pause"></i> Stop Auto-refresh';
+    btn.className = 'btn btn-outline-warning';
+    status.textContent = 'Every 10s';
+  }
+}
+
+function clearLogs() {
+  document.getElementById('log-container').innerHTML = `
+    <div class="text-center text-muted py-5">
+      <i class="fas fa-broom fa-3x mb-3"></i>
+      <h5>Display cleared</h5>
+      <p>Click refresh to reload logs.</p>
+    </div>
+  `;
+  document.getElementById('total-entries').textContent = '0';
+  document.getElementById('filtered-count').textContent = '0';
+}
+
+function exportLogs() {
+  const logs = logData.map(log => {
+    return `[${new Date(log.timestamp).toISOString()}] ${log.stream}: ${log.message}`;
+  }).join('\n');
+  
+  const blob = new Blob([logs], { type: 'text/plain' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${encodeURIComponent('<%= @service_name %>')}_logs_${new Date().toISOString().split('T')[0]}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Initialize scroll position
+document.addEventListener('DOMContentLoaded', function() {
+  const container = document.getElementById('log-container');
+  if (container && document.getElementById('scroll-to-new').checked) {
+    container.scrollTop = 0;
+  }
+});
+</script>
+
+<style>
+.log-entry {
+  border-left: 3px solid transparent;
+  padding-left: 10px;
+  transition: all 0.2s ease;
+}
+
+.log-entry:hover {
+  border-left-color: #007bff;
+  background-color: rgba(255,255,255,0.05);
+}
+
+#log-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+#log-container::-webkit-scrollbar-track {
+  background: #2c2c2c;
+}
+
+#log-container::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 6px;
+}
+
+#log-container::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+.timestamp {
+  font-weight: bold;
+}
+
+.stream-name {
+  font-weight: bold;
+}
+
+.message {
+  word-wrap: break-word;
+}
+</style> 

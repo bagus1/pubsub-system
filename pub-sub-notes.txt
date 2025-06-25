@@ -1,0 +1,696 @@
+>>>>> aws sts get-caller-identity
+
+{
+    "UserId": "AIDAXBOAFH2ZD5T4ZMMZD",
+    "Account": "484123688626",
+    "Arn": "arn:aws:iam::484123688626:user/terraform-user"
+}
+
+
+Simple Notification Service!
+>>>>> aws sns create-topic --name order-events: 
+
+{
+    "TopicArn": "arn:aws:sns:us-east-1:484123688626:order-events"
+}
+
+
+
+>>>>> aws sqs create-queue --queue-name email-service-queue
+{
+    "QueueUrl": "https://sqs.us-east-1.amazonaws.com/484123688626/email-service-queue"
+}
+(END)
+
+
+>>>>> aws sqs create-queue --queue-name email-service-queue
+{
+    "QueueUrl": "https://sqs.us-east-1.amazonaws.com/484123688626/email-service-queue"
+}
+>>>>> aws sqs create-queue --queue-name inventory-service-queue
+
+{
+    "QueueUrl": "https://sqs.us-east-1.amazonaws.com/484123688626/inventory-service-queue"
+}
+>>>>> aws sqs create-queue --queue-name analytics-service-queue
+
+{
+    "QueueUrl": "https://sqs.us-east-1.amazonaws.com/484123688626/analytics-service-queue"
+}
+
+// email-service-queue, inventory-service-queue, analytics-service-queue
+
+>>>>> aws sns create-topic --name order-events
+
+{
+    "TopicArn": "arn:aws:sns:us-east-1:484123688626:order-events"
+}
+
+>>>>> aws sqs get-queue-attributes --queue-url https://sqs.us-east-1.amazonaws.com/484123688626/email-service-queue --attribute-names QueueArn
+{
+    "Attributes": {
+        "QueueArn": "arn:aws:sqs:us-east-1:484123688626:email-service-queue"
+    }
+}
+
+subscribe to topic: (1.4)
+================
+
+>>>>> aws sns subscribe --topic-arn arn:aws:sns:us-east-1:484123688626:order-events --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:484123688626:email-service-queue
+
+
+subscribe your email service queue to the order-events topic.
+
+>>>>> aws sns subscribe --topic-arn arn:aws:sns:us-east-1:484123688626:order-events --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:484123688626:email-service-queue
+
+{
+    "SubscriptionArn": "arn:aws:sns:us-east-1:484123688626:order-events:6378a17c-3e0f-45b0-8287-bcbb8397d6ea"
+}
+
+# subscribe your inventory service queue to the order-events topic.
+
+>>>>> aws sqs get-queue-attributes --queue-url https://sqs.us-east-1.amazonaws.com/484123688626/inventory-service-queue --attribute-names QueueArn
+
+{
+    "Attributes": {
+        "QueueArn": "arn:aws:sqs:us-east-1:484123688626:inventory-service-queue"
+    }
+}
+
+
+>>>>> aws sns subscribe --topic-arn arn:aws:sns:us-east-1:484123688626:order-events --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:484123688626:inventory-service-queue
+
+{
+    "SubscriptionArn": "arn:aws:sns:us-east-1:484123688626:order-events:20c136c2-57f2-4d19-b96e-9fe8e3323c63"
+}
+
+
+subscribe analytics service queue to the order-events topic
+========================
+
+aws sqs get-queue-attributes --queue-url https://sqs.us-east-1.amazonaws.com/484123688626/analytics-service-queue --attribute-names QueueArn
+{
+    "Attributes": {
+        "QueueArn": "arn:aws:sqs:us-east-1:484123688626:analytics-service-queue"
+    }
+
+
+aws sns subscribe --topic-arn arn:aws:sns:us-east-1:484123688626:order-events --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:484123688626:analytics-service-queue
+{
+    "SubscriptionArn": "arn:aws:sns:us-east-1:484123688626:order-events:6e87c0fb-5e59-4d64-993b-b68036e0bdc0"
+}
+
+
+
+1.5  Set SQS Permissions
+=========================
+
+aws sqs set-queue-attributes --queue-url https://sqs.us-east-1.amazonaws.com/484123688626/email-service-queue --attributes '{
+  "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"sns.amazonaws.com\"},\"Action\":\"sqs:SendMessage\",\"Resource\":\"arn:aws:sqs:us-east-1:484123688626:email-service-queue\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:us-east-1:484123688626:order-events\"}}}]}"
+}'
+
+aws sqs set-queue-attributes --queue-url https://sqs.us-east-1.amazonaws.com/484123688626/inventory-service-queue --attributes '{
+  "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"sns.amazonaws.com\"},\"Action\":\"sqs:SendMessage\",\"Resource\":\"arn:aws:sqs:us-east-1:484123688626:inventory-service-queue\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:us-east-1:484123688626:order-events\"}}}]}"
+}'
+
+
+aws sqs set-queue-attributes --queue-url https://sqs.us-east-1.amazonaws.com/484123688626/analytics-service-queue --attributes '{
+  "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"sns.amazonaws.com\"},\"Action\":\"sqs:SendMessage\",\"Resource\":\"arn:aws:sqs:us-east-1:484123688626:analytics-service-queue\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:us-east-1:484123688626:order-events\"}}}]}"
+}'
+
+
+
+
+
+=======================
+
+
+
+docker push 484123688626.dkr.ecr.us-east-1.amazonaws.com/order-publisher:latest
+The push refers to repository [484123688626.dkr.ecr.us-east-1.amazonaws.com/order-publisher]
+71daa2c787b0: Pushed
+07e530b546f6: Pushed
+9fa025137da1: Pushed
+e00d42fd1a99: Pushed
+d8f74e308230: Pushed
+002e18bd5659: Pushed
+dd70c6c128e3: Pushed
+683069b43374: Pushed
+9d81c6467275: Pushed
+e1900c35d96f: Pushed
+24edb9d65bcb: Pushed
+f9842fc7ebe9: Pushed
+ebf144460616: Pushed
+latest: digest: sha256:c9d4aad0f25c3666174492dc39b5b6969bc49f8fe5013bc25abaad01fb06acd1 size: 856
+(base) ➜  order_publisher git:(main) ✗ aws ecr create-repository --repository-name email-service
+{
+    "repository": {
+        "repositoryArn": "arn:aws:ecr:us-east-1:484123688626:repository/email-service",
+        "registryId": "484123688626",
+        "repositoryName": "email-service",
+        "repositoryUri": "484123688626.dkr.ecr.us-east-1.amazonaws.com/email-service",
+        "createdAt": "2025-06-19T07:06:21.998000-06:00",
+        "imageTagMutability": "MUTABLE",
+        "imageScanningConfiguration": {
+            "scanOnPush": false
+        },
+        "encryptionConfiguration": {
+            "encryptionType": "AES256"
+        }
+    }
+}
+(base) ➜  order_publisher git:(main) ✗ aws ecr create-repository --repository-name inventory-service
+
+{
+    "repository": {
+        "repositoryArn": "arn:aws:ecr:us-east-1:484123688626:repository/inventory-service",
+        "registryId": "484123688626",
+        "repositoryName": "inventory-service",
+        "repositoryUri": "484123688626.dkr.ecr.us-east-1.amazonaws.com/inventory-service",
+        "createdAt": "2025-06-19T07:06:33.568000-06:00",
+        "imageTagMutability": "MUTABLE",
+        "imageScanningConfiguration": {
+            "scanOnPush": false
+        },
+        "encryptionConfiguration": {
+            "encryptionType": "AES256"
+        }
+    }
+}
+(base) ➜  order_publisher git:(main) ✗ aws ecr create-repository --repository-name analytics-service
+{
+    "repository": {
+        "repositoryArn": "arn:aws:ecr:us-east-1:484123688626:repository/analytics-service",
+        "registryId": "484123688626",
+        "repositoryName": "analytics-service",
+        "repositoryUri": "484123688626.dkr.ecr.us-east-1.amazonaws.com/analytics-service",
+        "createdAt": "2025-06-19T07:06:41.761000-06:00",
+        "imageTagMutability": "MUTABLE",
+        "imageScanningConfiguration": {
+            "scanOnPush": false
+        },
+        "encryptionConfiguration": {
+            "encryptionType": "AES256"
+        }
+    }
+}
+(base) ➜  order_publisher git:(main) ✗
+
+
+
+
+
+
+docker push 484123688626.dkr.ecr.us-east-1.amazonaws.com/email-service:latest
+The push refers to repository [484123688626.dkr.ecr.us-east-1.amazonaws.com/email-service]
+d69d4d41cfe2: Pushed
+8b842a680302: Pushed
+92e738008e3b: Pushed
+c438726e9c2f: Pushed
+fa0dd9bea534: Pushed
+9f5af6b9c1b2: Pushed
+daa1406583f8: Pushed
+da4c354b3cae: Pushed
+latest: digest: sha256:0158f59a8b308fd66fa6af39ca375be26e155a1a47da086188e26f4e04e1dea6 size: 856
+(base) ➜  services
+(base) ➜  services docker push 484123688626.dkr.ecr.us-east-1.amazonaws.com/inventory-service:latest
+The push refers to repository [484123688626.dkr.ecr.us-east-1.amazonaws.com/inventory-service]
+daa1406583f8: Pushed
+92e738008e3b: Pushed
+c438726e9c2f: Pushed
+8b842a680302: Pushed
+9f5af6b9c1b2: Pushed
+da4c354b3cae: Pushed
+fa0dd9bea534: Pushed
+d69d4d41cfe2: Pushed
+latest: digest: sha256:0158f59a8b308fd66fa6af39ca375be26e155a1a47da086188e26f4e04e1dea6 size: 856
+(base) ➜  services sour
+(base) ➜  services docker push 484123688626.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+The push refers to repository [484123688626.dkr.ecr.us-east-1.amazonaws.com/analytics-service]
+826b6b6d3d31: Pushed
+c438726e9c2f: Pushed
+daa1406583f8: Pushed
+d69d4d41cfe2: Pushed
+9f5af6b9c1b2: Pushed
+8b842a680302: Pushed
+da4c354b3cae: Pushed
+fa0dd9bea534: Pushed
+latest: digest: sha256:56dafaab00135f87464ca7f8b6b6e7ebd3a9ae79da305859e6e95b75971c6902 size: 856
+(base) ➜  services
+
+
+
+
+
+clean up:
+
+aws ecr batch-delete-image --repository-name email-service --image-ids imageDigest=sha256:2d3d3894968915c13c3969c1b18bf221f4f39ee3055d9e87fd119ce8d8db3f8e
+aws ecr batch-delete-image --repository-name email-service --image-ids imageDigest=sha256:b7da72312f081c13e7d4e669d683a85610e18f96e9ba6971a179e6d43f67754a
+# Similar for other services...
+
+
+ docker image prune -a
+ docker container prune
+
+
+
+ # 1. Create IAM Role
+aws iam create-role --role-name ecsTaskExecutionRole --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ecs-tasks.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+
+# 2. Attach Policy
+aws iam attach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+# 3. Create Log Groups
+aws logs create-log-group --log-group-name /ecs/order-publisher
+aws logs create-log-group --log-group-name /ecs/email-service  
+aws logs create-log-group --log-group-name /ecs/analytics-service
+aws logs create-log-group --log-group-name /ecs/inventory-service
+
+# 4. Register Task Definitions
+aws ecs register-task-definition --cli-input-json file://order-publisher-td.json
+aws ecs register-task-definition --cli-input-json file://email-service-td.json
+aws ecs register-task-definition --cli-input-json file://analytics-service-td.json
+aws ecs register-task-definition --cli-input-json file://inventory-service-td.json
+
+
+(base) ➜  services aws ec2 describe-subnets --filters "Name=default-for-az,Values=true" --query "Subnets[*].SubnetId" --output text
+
+subnet-01f6a0a7911cbbda0    subnet-088e1db74d6f244b7    subnet-0af01b2efb3589414    subnet-0c99d9eddbb62324e    subnet-00a341b7873e4a3b5    subnet-045ee21c0ddb5a13b
+(base) ➜  services aws ec2 describe-security-groups --filters "Name=group-name,Values=default" --query "SecurityGroups[*].GroupId" --output text
+
+sg-05aa73c025ae8b8db
+
+
+
+==============1.6   
+create-service
+
+
+ services aws ecs create-service \
+  --cluster pubsub-cluster \
+  --service-name order-publisher \
+  --task-definition order-publisher-td \
+  --desired-count 1 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-01f6a0a7911cbbda0],securityGroups=[sg-05aa73c025ae8b8db],assignPublicIp=ENABLED}"
+{
+    "service": {
+        "serviceArn": "arn:aws:ecs:us-east-1:484123688626:service/pubsub-cluster/order-publisher",
+        "serviceName": "order-publisher",
+        "clusterArn": "arn:aws:ecs:us-east-1:484123688626:cluster/pubsub-cluster",
+        "loadBalancers": [],
+        "serviceRegistries": [],
+        "status": "ACTIVE",
+        "desiredCount": 1,
+        "runningCount": 0,
+        "pendingCount": 0,
+        "launchType": "FARGATE",
+        "platformVersion": "LATEST",
+        "platformFamily": "Linux",
+        "taskDefinition": "arn:aws:ecs:us-east-1:484123688626:task-definition/order-publisher-td:1",
+        "deploymentConfiguration": {
+            "deploymentCircuitBreaker": {
+                "enable": false,
+                "rollback": false
+            },
+            "maximumPercent": 200,
+            "minimumHealthyPercent": 100
+        },
+        "deployments": [
+            {
+                "id": "ecs-svc/5167850990823973190",
+                "status": "PRIMARY",
+                "taskDefinition": "arn:aws:ecs:us-east-1:484123688626:task-definition/order-publisher-td:1",
+                "desiredCount": 0,
+                "pendingCount": 0,
+                "runningCount": 0,
+                "failedTasks": 0,
+                "createdAt": "2025-06-19T08:09:45.091000-06:00",
+                "updatedAt": "2025-06-19T08:09:45.091000-06:00",
+                "launchType": "FARGATE",
+                "platformVersion": "1.4.0",
+                "platformFamily": "Linux",
+                "networkConfiguration": {
+                    "awsvpcConfiguration": {
+                        "subnets": [
+                            "subnet-01f6a0a7911cbbda0"
+                        ],
+                        "securityGroups": [
+                            "sg-05aa73c025ae8b8db"
+                        ],
+                        "assignPublicIp": "ENABLED"
+                    }
+                },
+                "rolloutState": "IN_PROGRESS",
+                "rolloutStateReason": "ECS deployment ecs-svc/5167850990823973190 in progress."
+            }
+        ],
+        "roleArn": "arn:aws:iam::484123688626:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+        "events": [],
+        "createdAt": "2025-06-19T08:09:45.091000-06:00",
+        "placementConstraints": [],
+        "placementStrategy": [],
+        "networkConfiguration": {
+            "awsvpcConfiguration": {
+                "subnets": [
+                    "subnet-01f6a0a7911cbbda0"
+                ],
+                "securityGroups": [
+                    "sg-05aa73c025ae8b8db"
+                ],
+                "assignPublicIp": "ENABLED"
+            }
+        },
+        "healthCheckGracePeriodSeconds": 0,
+        "schedulingStrategy": "REPLICA",
+        "deploymentController": {
+            "type": "ECS"
+        },
+        "createdBy": "arn:aws:iam::484123688626:user/terraform-user",
+        "enableECSManagedTags": false,
+        "propagateTags": "NONE",
+        "enableExecuteCommand": false,
+        "availabilityZoneRebalancing": "DISABLED"
+    }
+}
+(base) ➜  services aws ecs create-service \
+  --cluster pubsub-cluster \
+  --service-name email-service \
+  --task-definition email-service-td \
+  --desired-count 1 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-01f6a0a7911cbbda0],securityGroups=[sg-05aa73c025ae8b8db],assignPublicIp=ENABLED}"
+
+{
+    "service": {
+        "serviceArn": "arn:aws:ecs:us-east-1:484123688626:service/pubsub-cluster/email-service",
+        "serviceName": "email-service",
+        "clusterArn": "arn:aws:ecs:us-east-1:484123688626:cluster/pubsub-cluster",
+        "loadBalancers": [],
+        "serviceRegistries": [],
+        "status": "ACTIVE",
+        "desiredCount": 1,
+        "runningCount": 0,
+        "pendingCount": 0,
+        "launchType": "FARGATE",
+        "platformVersion": "LATEST",
+        "platformFamily": "Linux",
+        "taskDefinition": "arn:aws:ecs:us-east-1:484123688626:task-definition/email-service-td:1",
+        "deploymentConfiguration": {
+            "deploymentCircuitBreaker": {
+                "enable": false,
+                "rollback": false
+            },
+            "maximumPercent": 200,
+            "minimumHealthyPercent": 100
+        },
+        "deployments": [
+            {
+                "id": "ecs-svc/4613230772545504844",
+                "status": "PRIMARY",
+                "taskDefinition": "arn:aws:ecs:us-east-1:484123688626:task-definition/email-service-td:1",
+                "desiredCount": 0,
+                "pendingCount": 0,
+                "runningCount": 0,
+                "failedTasks": 0,
+                "createdAt": "2025-06-19T08:11:10.050000-06:00",
+                "updatedAt": "2025-06-19T08:11:10.050000-06:00",
+                "launchType": "FARGATE",
+                "platformVersion": "1.4.0",
+                "platformFamily": "Linux",
+                "networkConfiguration": {
+                    "awsvpcConfiguration": {
+                        "subnets": [
+                            "subnet-01f6a0a7911cbbda0"
+                        ],
+                        "securityGroups": [
+                            "sg-05aa73c025ae8b8db"
+                        ],
+                        "assignPublicIp": "ENABLED"
+                    }
+                },
+                "rolloutState": "IN_PROGRESS",
+                "rolloutStateReason": "ECS deployment ecs-svc/4613230772545504844 in progress."
+            }
+        ],
+        "roleArn": "arn:aws:iam::484123688626:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+        "events": [],
+        "createdAt": "2025-06-19T08:11:10.050000-06:00",
+        "placementConstraints": [],
+        "placementStrategy": [],
+        "networkConfiguration": {
+            "awsvpcConfiguration": {
+                "subnets": [
+                    "subnet-01f6a0a7911cbbda0"
+                ],
+                "securityGroups": [
+                    "sg-05aa73c025ae8b8db"
+                ],
+                "assignPublicIp": "ENABLED"
+            }
+        },
+        "healthCheckGracePeriodSeconds": 0,
+        "schedulingStrategy": "REPLICA",
+        "deploymentController": {
+            "type": "ECS"
+        },
+        "createdBy": "arn:aws:iam::484123688626:user/terraform-user",
+        "enableECSManagedTags": false,
+        "propagateTags": "NONE",
+        "enableExecuteCommand": false,
+        "availabilityZoneRebalancing": "DISABLED"
+    }
+}
+(base) ➜  services aws ecs create-service \
+  --cluster pubsub-cluster \
+  --service-name analytics-service \
+  --task-definition analytics-service-td \
+  --desired-count 1 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-01f6a0a7911cbbda0],securityGroups=[sg-05aa73c025ae8b8db],assignPublicIp=ENABLED}"
+
+{
+    "service": {
+        "serviceArn": "arn:aws:ecs:us-east-1:484123688626:service/pubsub-cluster/analytics-service",
+        "serviceName": "analytics-service",
+        "clusterArn": "arn:aws:ecs:us-east-1:484123688626:cluster/pubsub-cluster",
+        "loadBalancers": [],
+        "serviceRegistries": [],
+        "status": "ACTIVE",
+        "desiredCount": 1,
+        "runningCount": 0,
+        "pendingCount": 0,
+        "launchType": "FARGATE",
+        "platformVersion": "LATEST",
+        "platformFamily": "Linux",
+        "taskDefinition": "arn:aws:ecs:us-east-1:484123688626:task-definition/analytics-service-td:1",
+        "deploymentConfiguration": {
+            "deploymentCircuitBreaker": {
+                "enable": false,
+                "rollback": false
+            },
+            "maximumPercent": 200,
+            "minimumHealthyPercent": 100
+        },
+        "deployments": [
+            {
+                "id": "ecs-svc/2338850541763216583",
+                "status": "PRIMARY",
+                "taskDefinition": "arn:aws:ecs:us-east-1:484123688626:task-definition/analytics-service-td:1",
+                "desiredCount": 0,
+                "pendingCount": 0,
+                "runningCount": 0,
+                "failedTasks": 0,
+                "createdAt": "2025-06-19T08:11:18.625000-06:00",
+                "updatedAt": "2025-06-19T08:11:18.625000-06:00",
+                "launchType": "FARGATE",
+                "platformVersion": "1.4.0",
+                "platformFamily": "Linux",
+                "networkConfiguration": {
+                    "awsvpcConfiguration": {
+                        "subnets": [
+                            "subnet-01f6a0a7911cbbda0"
+                        ],
+                        "securityGroups": [
+                            "sg-05aa73c025ae8b8db"
+                        ],
+                        "assignPublicIp": "ENABLED"
+                    }
+                },
+                "rolloutState": "IN_PROGRESS",
+                "rolloutStateReason": "ECS deployment ecs-svc/2338850541763216583 in progress."
+            }
+        ],
+        "roleArn": "arn:aws:iam::484123688626:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+        "events": [],
+        "createdAt": "2025-06-19T08:11:18.625000-06:00",
+        "placementConstraints": [],
+        "placementStrategy": [],
+        "networkConfiguration": {
+            "awsvpcConfiguration": {
+                "subnets": [
+                    "subnet-01f6a0a7911cbbda0"
+                ],
+                "securityGroups": [
+                    "sg-05aa73c025ae8b8db"
+                ],
+                "assignPublicIp": "ENABLED"
+            }
+        },
+        "healthCheckGracePeriodSeconds": 0,
+        "schedulingStrategy": "REPLICA",
+        "deploymentController": {
+            "type": "ECS"
+        },
+        "createdBy": "arn:aws:iam::484123688626:user/terraform-user",
+        "enableECSManagedTags": false,
+        "propagateTags": "NONE",
+        "enableExecuteCommand": false,
+        "availabilityZoneRebalancing": "DISABLED"
+    }
+}
+(base) ➜  services aws ecs create-service \
+  --cluster pubsub-cluster \
+  --service-name inventory-service \
+  --task-definition inventory-service-td \
+  --desired-count 1 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-01f6a0a7911cbbda0],securityGroups=[sg-05aa73c025ae8b8db],assignPublicIp=ENABLED}"
+{
+    "service": {
+        "serviceArn": "arn:aws:ecs:us-east-1:484123688626:service/pubsub-cluster/inventory-service",
+        "serviceName": "inventory-service",
+        "clusterArn": "arn:aws:ecs:us-east-1:484123688626:cluster/pubsub-cluster",
+        "loadBalancers": [],
+        "serviceRegistries": [],
+        "status": "ACTIVE",
+        "desiredCount": 1,
+        "runningCount": 0,
+        "pendingCount": 0,
+        "launchType": "FARGATE",
+        "platformVersion": "LATEST",
+        "platformFamily": "Linux",
+        "taskDefinition": "arn:aws:ecs:us-east-1:484123688626:task-definition/inventory-service-td:1",
+        "deploymentConfiguration": {
+            "deploymentCircuitBreaker": {
+                "enable": false,
+                "rollback": false
+            },
+            "maximumPercent": 200,
+            "minimumHealthyPercent": 100
+        },
+        "deployments": [
+            {
+                "id": "ecs-svc/7204279365638858135",
+                "status": "PRIMARY",
+                "taskDefinition": "arn:aws:ecs:us-east-1:484123688626:task-definition/inventory-service-td:1",
+                "desiredCount": 0,
+                "pendingCount": 0,
+                "runningCount": 0,
+                "failedTasks": 0,
+                "createdAt": "2025-06-19T08:11:34.433000-06:00",
+                "updatedAt": "2025-06-19T08:11:34.433000-06:00",
+                "launchType": "FARGATE",
+                "platformVersion": "1.4.0",
+                "platformFamily": "Linux",
+                "networkConfiguration": {
+                    "awsvpcConfiguration": {
+                        "subnets": [
+                            "subnet-01f6a0a7911cbbda0"
+                        ],
+                        "securityGroups": [
+                            "sg-05aa73c025ae8b8db"
+                        ],
+                        "assignPublicIp": "ENABLED"
+                    }
+                },
+                "rolloutState": "IN_PROGRESS",
+                "rolloutStateReason": "ECS deployment ecs-svc/7204279365638858135 in progress."
+            }
+        ],
+        "roleArn": "arn:aws:iam::484123688626:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+        "events": [],
+        "createdAt": "2025-06-19T08:11:34.433000-06:00",
+        "placementConstraints": [],
+        "placementStrategy": [],
+        "networkConfiguration": {
+            "awsvpcConfiguration": {
+                "subnets": [
+                    "subnet-01f6a0a7911cbbda0"
+                ],
+                "securityGroups": [
+                    "sg-05aa73c025ae8b8db"
+                ],
+                "assignPublicIp": "ENABLED"
+            }
+        },
+        "healthCheckGracePeriodSeconds": 0,
+        "schedulingStrategy": "REPLICA",
+        "deploymentController": {
+            "type": "ECS"
+        },
+        "createdBy": "arn:aws:iam::484123688626:user/terraform-user",
+        "enableECSManagedTags": false,
+        "propagateTags": "NONE",
+        "enableExecuteCommand": false,
+        "availabilityZoneRebalancing": "DISABLED"
+    }
+}
+
+
+
+# Get the public IP of your Rails app
+aws ecs list-tasks --cluster pubsub-cluster --service-name order-publisher
+aws ecs describe-tasks --cluster pubsub-cluster --tasks TASK-ARN
+
+# Then POST to create an order
+curl -X POST http://PUBLIC-IP:3000/orders \
+  -H "Content-Type: application/json" \
+  -d '{"product":"laptop","quantity":2,"customer_email":"test@example.com"}'
+
+
+
+
+
+
+
+
+  To Get the Public IP:
+Since you have assignPublicIp=ENABLED, the task should get a public IP once it's fully running. You need to get the Elastic Network Interface (ENI) details:
+Apply to order-publis...
+Run
+aws ec2 describe-network-interfaces --network-interface-ids eni-09919926726f25ef9 --query "NetworkInterfaces[0].Association.PublicIp" --output text
+Wait for Task to Start:
+Your task is still PENDING. Let's check if it's running now:
+Apply to order-publis...
+Run
+aws ecs describe-tasks --cluster pubsub-cluster --tasks arn:aws:ecs:us-east-1:484123688626:task/pubsub-cluster/118138bfc2414769a1471506f4d6178a --query "tasks[0].lastStatus" --output text
+If Task is Stuck in PENDING:
+Check the logs for any startup issues:
+Apply to order-publis...
+Run
+10m
+Once the task status changes from PENDING to RUNNING, the ENI command should return the public IP. Try the ENI command first to see if you get a public IP!
+ aws ec2 describe-network-interfaces --network-interface-ids eni-09919926726f25ef9 --query "NetworkInterfaces[0].Association.PublicIp" --output text
+
+An error occurred (InvalidNetworkInterfaceID.NotFound) when calling the DescribeNetworkInterfaces operation: The networkInterface ID 'eni-09919926726f25ef9' does not exist
+(base) ➜  services aws ecs describe-tasks --cluster pubsub-cluster --tasks arn:aws:ecs:us-east-1:484123688626:task/pubsub-cluster/118138bfc2414769a1471506f4d6178a --query "tasks[0].lastStatus" --output text
+STOPPED
+
+Ah! The task STOPPED - that means there was an issue starting the container. The ENI gets deleted when the task stops, which is why it's not found.
+Let's Check What Went Wrong:
+Apply to order-publis...
+Run
+30m
+Common Issues That Cause Task Failure:
+Container startup failure - Rails app might not be starting properly
+Port binding issues - Container might not be listening on port 3000
+Database connection - Rails might be trying to connect to a database that doesn't exist
+Missing environment variables
+Image pull failure (less likely since we built and pushed)
+Quick Debug Steps:
+Apply to order-publis...
+Run
+STOPPED
+The logs will tell us exactly what went wrong. Most likely the Rails app is failing to start because it's missing a database connection or some other configuration issue.
+Want to run these debug commands to see what happened?

@@ -1,0 +1,45 @@
+{
+    "family": "pubsub-supervisor-task",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::484123688626:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "name": "pubsub-supervisor",
+            "image": "484123688626.dkr.ecr.us-east-1.amazonaws.com/pubsub-supervisor:latest",
+            "portMappings": [
+                {
+                    "containerPort": 3000,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [
+                {
+                    "name": "AWS_REGION",
+                    "value": "us-east-1"
+                },
+                {
+                    "name": "AWS_ACCOUNT_ID",
+                    "value": "484123688626"
+                },
+                {
+                    "name": "RAILS_ENV",
+                    "value": "production"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/pubsub-supervisor",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "essential": true
+        }
+    ]
+}

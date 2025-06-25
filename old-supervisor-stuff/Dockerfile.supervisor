@@ -1,0 +1,44 @@
+# Use Ruby 3.4.2 slim as base to match Rails app
+FROM ruby:3.4.2-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    supervisor \
+    build-essential \
+    libsqlite3-dev \
+    libyaml-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Create log directory
+RUN mkdir -p /var/log
+
+# Copy Rails app
+COPY order_publisher/ ./order_publisher/
+
+# Copy services
+COPY services/ ./services/
+
+# Copy supervisor config
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Install Rails dependencies
+WORKDIR /app/order_publisher
+RUN bundle config set --local without 'development test'
+RUN bundle install
+
+# Install service dependencies (AWS SDK gems)
+WORKDIR /app
+RUN gem install aws-sdk-sqs aws-sdk-sns
+
+# Expose Rails port
+EXPOSE 3000
+
+# Create SQLite database for Rails (production mode)
+WORKDIR /app/order_publisher
+RUN RAILS_ENV=production bundle exec rails db:create db:migrate
+
+# Start supervisor (which starts all processes)
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 

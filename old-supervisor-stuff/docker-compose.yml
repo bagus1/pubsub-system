@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Rails API that publishes order events
+  order-publisher:
+    build: ./order_publisher
+    ports:
+      - "3000:3000"
+    environment:
+      - RAILS_ENV=development
+    volumes:
+      - ./order_publisher:/app
+      - /app/tmp
+    depends_on:
+      - db
+
+  # Database for Rails app
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: order_publisher_development
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # Email service - processes order events
+  email-service:
+    build: ./services/email-service
+    environment:
+      - AWS_REGION=us-east-1
+      # In production, you'd use IAM roles instead of credentials
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    restart: unless-stopped
+
+  # Inventory service - processes order events  
+  inventory-service:
+    build: ./services/inventory-service
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    restart: unless-stopped
+
+  # Analytics service - processes order events
+  analytics-service:
+    build: ./services/analytics-service
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    restart: unless-stopped
+
+volumes:
+  postgres_data: 

@@ -1,0 +1,71 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3">Orders</h1>
+  <%= link_to "New Order", new_order_path, class: "btn btn-primary" %>
+</div>
+
+<% if @orders.any? %>
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>User ID</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @orders.each do |order| %>
+            <tr>
+              <td><%= order.id %></td>
+              <td><%= order.user_id %></td>
+              <td>$<%= number_with_precision(order.total, precision: 2) %></td>
+              <td>
+                <span class="badge bg-<%= order.status == 'completed' ? 'success' : order.status == 'pending' ? 'warning' : 'secondary' %>">
+                  <%= order.status.capitalize %>
+                </span>
+              </td>
+              <td><%= time_ago_in_words(order.created_at) %> ago</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <%= link_to "View", order, class: "btn btn-outline-primary" %>
+                  <%= link_to "Edit", edit_order_path(order), class: "btn btn-outline-secondary" %>
+                  <%= link_to "Delete", order, method: :delete, 
+                      confirm: "Are you sure?", 
+                      class: "btn btn-outline-danger" %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <p class="text-muted">
+      <strong><%= @orders.count %></strong> order<%= 's' if @orders.count != 1 %> total
+    </p>
+  </div>
+<% else %>
+  <div class="text-center py-5">
+    <div class="mb-4">
+      <svg width="64" height="64" class="text-muted">
+        <use href="#cart"></use>
+      </svg>
+    </div>
+    <h4 class="text-muted">No orders yet</h4>
+    <p class="text-muted mb-4">Create your first order to get started with the AWS microservices demo.</p>
+    <%= link_to "Create First Order", new_order_path, class: "btn btn-primary" %>
+  </div>
+<% end %>
+
+<!-- SVG Icons -->
+<svg style="display: none;">
+  <symbol id="cart" viewBox="0 0 16 16">
+    <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+  </symbol>
+</svg> 

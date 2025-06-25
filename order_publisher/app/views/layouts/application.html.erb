@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Order Publisher - AWS Microservices Demo</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <!-- Stylesheet would go here if using asset pipeline -->
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </head>
+
+  <body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+      <div class="container">
+        <%= link_to "Order System with Pub Subs", root_path, class: "navbar-brand" %>
+        <div class="navbar-nav ms-auto">
+          <%= link_to "Orders", orders_path, class: "nav-link" %>
+          <%= link_to "New Order", new_order_path, class: "nav-link" %>
+          <%= link_to "AWS Logs", logs_path, class: "nav-link" %>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+      <% if notice %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <%= notice %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <% if alert %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <%= alert %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <%= yield %>
+    </div>
+
+    <footer class="bg-dark text-light mt-5 py-4">
+      <div class="container text-center">
+        <p>&copy; 2024 AWS Microservices Demo - Order Publisher Service</p>
+        <small class="text-muted">Built with Ruby on Rails, Docker, ECS, and SQS</small>
+      </div>
+    </footer>
+  </body>
+</html> 

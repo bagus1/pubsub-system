@@ -1,0 +1,145 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3">Edit Order #<%= @order.id %></h1>
+  <div class="btn-group">
+    <%= link_to "View Order", @order, class: "btn btn-outline-info" %>
+    <%= link_to "Back to Orders", orders_path, class: "btn btn-outline-secondary" %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Order Information</h5>
+      </div>
+      <div class="card-body">
+        <%= form_with(model: @order, local: true, class: "needs-validation", novalidate: true) do |form| %>
+          <% if @order.errors.any? %>
+            <div class="alert alert-danger">
+              <h6>Please fix the following errors:</h6>
+              <ul class="mb-0">
+                <% @order.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="mb-3">
+            <%= form.label :user_id, class: "form-label" %>
+            <%= form.number_field :user_id, class: "form-control #{'is-invalid' if @order.errors[:user_id].any?}", 
+                placeholder: "Enter user ID", required: true %>
+            <div class="form-text">Numeric ID of the user placing this order</div>
+            <% if @order.errors[:user_id].any? %>
+              <div class="invalid-feedback">
+                <%= @order.errors[:user_id].first %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="mb-3">
+            <%= form.label :total, "Total Amount ($)", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <%= form.number_field :total, step: 0.01, min: 0, 
+                  class: "form-control #{'is-invalid' if @order.errors[:total].any?}", 
+                  placeholder: "0.00", required: true %>
+              <% if @order.errors[:total].any? %>
+                <div class="invalid-feedback">
+                  <%= @order.errors[:total].first %>
+                </div>
+              <% end %>
+            </div>
+            <div class="form-text">Order total in USD</div>
+          </div>
+
+          <div class="mb-4">
+            <%= form.label :status, class: "form-label" %>
+            <%= form.select :status, 
+                options_for_select([
+                  ['Pending', 'pending'],
+                  ['Processing', 'processing'],
+                  ['Completed', 'completed'],
+                  ['Cancelled', 'cancelled']
+                ], @order.status), 
+                {}, 
+                { class: "form-select #{'is-invalid' if @order.errors[:status].any?}" } %>
+            <div class="form-text">
+              Current order status. 
+              <% if @order.status_changed? %>
+                <strong class="text-warning">Changing status will trigger an update event.</strong>
+              <% end %>
+            </div>
+            <% if @order.errors[:status].any? %>
+              <div class="invalid-feedback">
+                <%= @order.errors[:status].first %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <%= link_to "Cancel", @order, class: "btn btn-secondary me-md-2" %>
+            <%= form.submit "Update Order", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="card-title mb-0">Current Order Info</h6>
+      </div>
+      <div class="card-body">
+        <dl class="small">
+          <dt>Created:</dt>
+          <dd class="text-muted mb-2"><%= time_ago_in_words(@order.created_at) %> ago</dd>
+          
+          <dt>Last Updated:</dt>
+          <dd class="text-muted mb-2"><%= time_ago_in_words(@order.updated_at) %> ago</dd>
+          
+          <dt>Current Status:</dt>
+          <dd class="mb-2">
+            <span class="badge bg-<%= @order.status == 'completed' ? 'success' : @order.status == 'pending' ? 'warning' : 'secondary' %>">
+              <%= @order.status.capitalize %>
+            </span>
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <h6 class="card-title mb-0">What happens when updated?</h6>
+      </div>
+      <div class="card-body">
+        <p class="card-text small">When you update this order:</p>
+        <ul class="small text-muted">
+          <li>Changes saved to RDS database</li>
+          <li><strong>Update event published to SQS</strong> (if status changes)</li>
+          <li>Email service notifies of changes</li>
+          <li>Inventory service processes updates</li>
+          <li>Analytics service tracks modifications</li>
+        </ul>
+        <p class="small text-warning mt-3">
+          <strong>Note:</strong> Status changes trigger additional microservice notifications.
+        </p>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <h6 class="card-title mb-0">Quick Actions</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <%= link_to "View Full Details", @order, class: "btn btn-outline-info btn-sm" %>
+          <%= link_to "Delete Order", @order, method: :delete, 
+              confirm: "Are you sure you want to delete this order?", 
+              class: "btn btn-outline-danger btn-sm" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

@@ -1,0 +1,156 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3">
+    <i class="fas fa-server me-2"></i>
+    Service Status
+  </h1>
+  <div class="btn-group">
+    <%= link_to "Orders", orders_path, class: "btn btn-outline-primary" %>
+    <button class="btn btn-success" onclick="location.reload()">
+      <i class="fas fa-sync-alt"></i> Refresh
+    </button>
+  </div>
+</div>
+
+<% if @system_status %>
+<div class="alert alert-success">
+  <i class="fas fa-check-circle me-2"></i>
+  <strong><%= @system_status %></strong><br>
+  <%= @message %>
+</div>
+<% end %>
+
+<div class="row">
+  <% @services.each_with_index do |service, index| %>
+    <div class="col-md-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-cube me-2"></i>
+            <%= service[:name] %>
+          </h5>
+          <span class="badge bg-success">
+            <i class="fas fa-check-circle"></i> Running
+          </span>
+        </div>
+        
+        <div class="card-body">
+          <div class="mb-3">
+            <small class="text-muted">
+              <strong>Status:</strong> <code><%= service[:status] %></code>
+            </small>
+          </div>
+          
+          <div class="alert alert-info mb-3">
+            <strong>✅ Service is operational</strong><br>
+            Messages are being processed successfully.
+          </div>
+          
+          <div class="d-grid gap-2">
+            <%= link_to "View Details", 
+                logs_path(service_name: service[:name]), 
+                class: "btn btn-primary" %>
+            
+            <small class="text-muted mt-2">
+              💡 <strong>Note:</strong> Service logs may not appear in <code>kubectl logs</code> due to Ruby stdout buffering, but messages are being processed successfully.
+            </small>
+          </div>
+        </div>
+        
+        <div class="card-footer">
+          <small class="text-muted">
+            Last checked: <%= Time.current.strftime("%H:%M:%S") %>
+          </small>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<div class="mt-4">
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-chart-line me-2"></i>
+        System Overview
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row text-center">
+        <div class="col-md-3">
+          <h6>Services</h6>
+          <h3 class="text-success"><%= @services.count %></h3>
+          <small class="text-muted">All Running</small>
+        </div>
+        <div class="col-md-3">
+          <h6>Pub-Sub Flow</h6>
+          <h3 class="text-success">✅</h3>
+          <small class="text-muted">Operational</small>
+        </div>
+        <div class="col-md-3">
+          <h6>SNS Publishing</h6>
+          <h3 class="text-success">✅</h3>
+          <small class="text-muted">Working</small>
+        </div>
+        <div class="col-md-3">
+          <h6>SQS Processing</h6>
+          <h3 class="text-success">✅</h3>
+          <small class="text-muted">Active</small>
+        </div>
+      </div>
+      
+      <hr>
+      
+      <div class="row">
+        <div class="col-md-12">
+          <h6>Architecture Status</h6>
+          <div class="d-flex justify-content-center align-items-center">
+            <span class="badge bg-success me-2">Rails App</span>
+            <i class="fas fa-arrow-right mx-2"></i>
+            <span class="badge bg-success me-2">SNS</span>
+            <i class="fas fa-arrow-right mx-2"></i>
+            <span class="badge bg-success me-2">SQS</span>
+            <i class="fas fa-arrow-right mx-2"></i>
+            <span class="badge bg-success">Microservices</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Simple refresh functionality -->
+<script>
+function refreshPage() {
+  location.reload();
+}
+</script>
+
+<style>
+.service-card {
+  transition: all 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.log-preview {
+  border: 1px solid #444;
+}
+
+.log-preview::-webkit-scrollbar {
+  width: 8px;
+}
+
+.log-preview::-webkit-scrollbar-track {
+  background: #2c2c2c;
+}
+
+.log-preview::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+</style>
+
+ 

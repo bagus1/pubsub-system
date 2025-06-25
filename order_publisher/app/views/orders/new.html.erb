@@ -1,0 +1,126 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3">Create New Order</h1>
+  <%= link_to "Back to Orders", orders_path, class: "btn btn-outline-secondary" %>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Order Information</h5>
+      </div>
+      <div class="card-body">
+        <%= form_with(model: @order, local: true, class: "needs-validation", novalidate: true) do |form| %>
+          <% if @order.errors.any? %>
+            <div class="alert alert-danger">
+              <h6>Please fix the following errors:</h6>
+              <ul class="mb-0">
+                <% @order.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="mb-3">
+            <%= form.label :user_id, class: "form-label" %>
+            <%= form.number_field :user_id, class: "form-control #{'is-invalid' if @order.errors[:user_id].any?}", 
+                placeholder: "Enter user ID", required: true %>
+            <div class="form-text">Numeric ID of the user placing this order</div>
+            <% if @order.errors[:user_id].any? %>
+              <div class="invalid-feedback">
+                <%= @order.errors[:user_id].first %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="mb-3">
+            <%= form.label :total, "Total Amount ($)", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <%= form.number_field :total, step: 0.01, min: 0, 
+                  class: "form-control #{'is-invalid' if @order.errors[:total].any?}", 
+                  placeholder: "0.00", required: true %>
+              <% if @order.errors[:total].any? %>
+                <div class="invalid-feedback">
+                  <%= @order.errors[:total].first %>
+                </div>
+              <% end %>
+            </div>
+            <div class="form-text">Order total in USD</div>
+          </div>
+
+          <div class="mb-4">
+            <%= form.label :status, class: "form-label" %>
+            <%= form.select :status, 
+                options_for_select([
+                  ['Pending', 'pending'],
+                  ['Processing', 'processing'],
+                  ['Completed', 'completed'],
+                  ['Cancelled', 'cancelled']
+                ], @order.status), 
+                { prompt: 'Select status' }, 
+                { class: "form-select #{'is-invalid' if @order.errors[:status].any?}" } %>
+            <div class="form-text">Current order status</div>
+            <% if @order.errors[:status].any? %>
+              <div class="invalid-feedback">
+                <%= @order.errors[:status].first %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <%= link_to "Cancel", orders_path, class: "btn btn-secondary me-md-2" %>
+            <%= form.submit "Create Order", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="card-title mb-0">What happens next?</h6>
+      </div>
+      <div class="card-body">
+        <p class="card-text small">When you create this order:</p>
+        <ul class="small text-muted">
+          <li>Order is saved to RDS database</li>
+          <li>Event published to SQS queue</li>
+          <li>Email service processes notification</li>
+          <li>Inventory service updates stock</li>
+          <li>Analytics service records metrics</li>
+        </ul>
+        <p class="small text-muted mt-3">
+          This demonstrates event-driven microservices architecture on AWS.
+        </p>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <h6 class="card-title mb-0">Sample Data</h6>
+      </div>
+      <div class="card-body">
+        <p class="small mb-2">Try these sample values:</p>
+        <div class="d-grid gap-1">
+          <button type="button" class="btn btn-outline-info btn-sm" onclick="fillSample(1001, 29.99, 'pending')">
+            Sample Order 1
+          </button>
+          <button type="button" class="btn btn-outline-info btn-sm" onclick="fillSample(1002, 149.95, 'processing')">
+            Sample Order 2
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function fillSample(userId, total, status) {
+  document.getElementById('order_user_id').value = userId;
+  document.getElementById('order_total').value = total;
+  document.getElementById('order_status').value = status;
+}
+</script> 
