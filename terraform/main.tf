@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -241,7 +245,9 @@ resource "aws_eks_cluster" "main" {
   version  = "1.28"
 
   vpc_config {
-    subnet_ids = concat(aws_subnet.public[*].id, aws_subnet.private[*].id)
+    subnet_ids              = concat(aws_subnet.public[*].id, aws_subnet.private[*].id)
+    endpoint_private_access = true
+    endpoint_public_access  = true
   }
 
   depends_on = [
@@ -399,4 +405,56 @@ resource "aws_sqs_queue_policy" "analytics_service" {
       }
     ]
   })
+}
+
+# Data source to get current AWS caller identity
+data "aws_caller_identity" "current" {}
+
+# Kubernetes provider for aws-auth ConfigMap management
+provider "kubernetes" {
+  host                   = aws_eks_cluster.main.endpoint
+  cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args = [
+      "eks",
+      "get-token",
+      "--cluster-name",
+      aws_eks_cluster.main.name
+    ]
+  }
+}
+
+# aws-auth ConfigMap to allow additional users/roles to access the cluster
+resource "kubernetes_config_map" "aws_auth" {
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = aws_iam_role.eks_node_group.arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups = [
+          "system:bootstrappers",
+          "system:nodes"
+        ]
+      }
+    ])
+
+    mapUsers = yamlencode([
+      {
+        userarn  = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/github-actions-user"
+        username = "github-actions-user"
+        groups = [
+          "system:masters"
+        ]
+      }
+    ])
+  }
+
+  depends_on = [aws_eks_node_group.main]
 }
