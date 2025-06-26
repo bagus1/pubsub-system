@@ -40,7 +40,7 @@ jobs:
 
     - name: Build and push email-service
       run: |
-        cd services/email_service
+        cd services/email-service
         docker build -t $ECR_REGISTRY/email-service:$GITHUB_SHA .
         docker push $ECR_REGISTRY/email-service:$GITHUB_SHA
         docker tag $ECR_REGISTRY/email-service:$GITHUB_SHA $ECR_REGISTRY/email-service:latest
@@ -48,7 +48,7 @@ jobs:
 
     - name: Build and push inventory-service
       run: |
-        cd services/inventory_service
+        cd services/inventory-service
         docker build -t $ECR_REGISTRY/inventory-service:$GITHUB_SHA .
         docker push $ECR_REGISTRY/inventory-service:$GITHUB_SHA
         docker tag $ECR_REGISTRY/inventory-service:$GITHUB_SHA $ECR_REGISTRY/inventory-service:latest
@@ -56,7 +56,7 @@ jobs:
 
     - name: Build and push analytics-service
       run: |
-        cd services/analytics_service
+        cd services/analytics-service
         docker build -t $ECR_REGISTRY/analytics-service:$GITHUB_SHA .
         docker push $ECR_REGISTRY/analytics-service:$GITHUB_SHA
         docker tag $ECR_REGISTRY/analytics-service:$GITHUB_SHA $ECR_REGISTRY/analytics-service:latest
